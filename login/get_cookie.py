@@ -21,7 +21,7 @@ import json
 from playwright.sync_api import sync_playwright, TimeoutError as PlaywrightTimeoutError
 
 login_url = 'https://passport.jd.com/new/login.aspx'  # 京东登录页面
-save_path = "../product/cookies/cookies.json"  # 保存 cookies 的路径
+save_path = "../cookies/cookies.json"  # 保存 cookies 的路径
 
 
 def getCookies():

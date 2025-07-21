@@ -1,19 +1,28 @@
-'''
-Author: HDJ @https://github.com/Goodnameisfordoggy
-LastEditTime: 2025-07-12 23:46:23
-FilePath: \pythond:\LocalUsers\Goodnameisfordoggy-Gitee\JD-Automated-Tools\JD-AutomaticEvaluate\JDpc-AutomaticEvaluate.py
-Description: @VSCode
+import sys
+from global_conf import global_vars
+from jdUtil import new_jdUtil
+from services.init import init_app
 
-				|	早岁已知世事艰，仍许飞鸿荡云间；
-				|	曾恋嘉肴香绕案，敲键弛张荡波澜。
-				|					 
-				|	功败未成身无畏，坚持未果心不悔；
-				|	皮囊终作一抔土，独留屎山贯寰宇。
 
-Copyright (c) 2024-2025 by HDJ, All Rights Reserved. 
-'''
+def main():
+	# 初始化应用
+	err = init_app()
+	if err:
+		print(f"初始化应用失败:{err}")
+		sys.exit(1)
+
+	# 注册清理函数
+	import atexit
+	atexit.register(global_vars.cleanup)
+
+
+	# 创建并运行Prophet
+	jdutil = new_jdUtil()
+	err = jdutil.run()
+
+	if err:
+		print(f"运行失败:{err}")
+		sys.exit(1)
+
 if __name__ == '__main__':
-	from product.src.auto_get_price import AutomaticEvaluate
-	AutomaticEvaluate.parse_args()
-	# import product.src.authenticate
-	QwQ = AutomaticEvaluate().exec_()
+	main()

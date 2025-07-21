@@ -11,31 +11,28 @@ from PIL import Image, ImageFilter
 from playwright.sync_api import TimeoutError as PlaywrightTimeoutError, Locator, ElementHandle, Page
 from typing import List, Optional
 
-from product.src import TEMP_IMAGE_DIR
+from product.src.utils import sku_code_list
 from product.src.data import EvaluationTask, TuringVerificationRequiredError, NetworkError, DEFAULT_COMMENT_TEXT_LIST
 from product.src.logger import get_logger, init_logger
-# from product.src.api_service import *
 from product.src.login_with_cookie import logInWithCookies
 from common.utils import *
 
 LOG = get_logger()
 
 
-class AutomaticEvaluate(object):
+class JDUtil(object):
 	LOG_LEVEL: str = "INFO"                          # 日志记录等级
 
 	def __init__(self) -> None:
 		self.__page, browser = None, None
 		self.__task_list: List[EvaluationTask] = []
-		self.__start_time = time.time() # 标记初始化时间戳
+		self.__start_time = time.time()  # 标记初始化时间戳
 		self.__err_occurred = False
 
 	@classmethod
 	def parse_args(cls):
 		"""解析命令行参数，并直接修改类属性"""
-		parser = argparse.ArgumentParser(
-			description="https://github.com/Goodnameisfordoggy/JD-AutomatedTools/tree/main/JD-AutomaticEvaluate",
-			prog="JD-AutomaticEvaluate")
+		parser = argparse.ArgumentParser()
 
 		parser.add_argument('-v', '--version', action='version', version='%(prog)s version: 2.9.19')
 		# parser.add_argument('-T', '--supported-table', action=ShowSupportedTableAction, help="show supported AI groups and models")
@@ -49,30 +46,17 @@ class AutomaticEvaluate(object):
 				setattr(cls, key.upper(), value)
 		return cls
 
-	def exec_(self) -> Optional[bool]:
+	def init(self):
 		"""主循环"""
 		try:
 			init_logger(self.LOG_LEVEL)
 			self.__page, _ = logInWithCookies()
-			self.get_sku_info_list()
-
 			return True
 		except Exception as err:
 			self.__err_occurred = True
 			LOG.error(f"执行过程中发生异常: {str(err)}")
 			if self.LOG_LEVEL == "DEBUG":
 				raise # 调试专用
-		finally:
-			hours, remainder = divmod(int(time.time()-self.__start_time), 3600)
-			minutes, seconds = divmod(remainder, 60)
-			# 根据是否有异常发生，显示不同的结束信息
-			if self.__err_occurred:
-				LOG.warning(f"JD-AutomaticEvaluate: 意外退出--耗时:{hours:02d}小时-{minutes:02d}分钟-{seconds:02d}秒")
-			else:
-				LOG.success(f"JD-AutomaticEvaluate: 运行结束--耗时:{hours:02d}小时-{minutes:02d}分钟-{seconds:02d}秒")
-			# 打包模式保留终端窗口
-			if getattr(sys, 'frozen', False):
-				input("按任意位置继续...")
 
 	def get_sku_info(self, sku_code):
 		'''
@@ -92,15 +76,19 @@ class AutomaticEvaluate(object):
 		except PlaywrightTimeoutError:
 			raise NetworkError(message=f"页面加载超时：{url_1}")
 		try:
+			self.__page.wait_for_selector('.sku-name-title', timeout=5000)
 			sku_name_element = self.__page.locator('.sku-name-title')
 			sku_name = sku_name_element.inner_text()
+			LOG.info(f'商品名称: {sku_name}')
 		except Exception as e:
 			LOG.error(f"获取商品名称失败: {e}")
 
 		try:
+			self.__page.wait_for_selector('.summary-price.J-summary-price .p-price .price')
 			price_element = self.__page.locator('.summary-price.J-summary-price .p-price .price')
 			price_text = price_element.inner_text()
 			price_value = float(price_text.split('¥')[-1].strip())
+			LOG.info(f'商品价格: {price_value}')
 		except Exception as e:
 			LOG.error(f"获取商品价格失败: {e}")
 		return {
@@ -110,13 +98,12 @@ class AutomaticEvaluate(object):
 		}
 
 	def get_sku_info_list(self):
-		sku_code_list = []
 		sku_info_list = []
 		for sku_code in sku_code_list:
 			sku_info = self.get_sku_info(sku_code)
 			if sku_info:
 				sku_info_list.append(sku_info)
-		LOG.debug(sku_info_list)
+		LOG.info(f'商品信息列表: {sku_info_list}')
 		return sku_info_list
 
 	def __requires_TuringVerification(self) -> bool:
@@ -165,3 +152,7 @@ class AutomaticEvaluate(object):
 	@sync_retry(max_retries=3, retry_delay=2, exceptions=(PlaywrightTimeoutError,))
 	def __load_page(self, url: str, timeout: float):
 		return self.__page.goto(url, timeout=timeout)
+
+def new_jd():
+	jd = JDUtil()
+	return jd

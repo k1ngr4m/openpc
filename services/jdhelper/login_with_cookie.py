@@ -1,17 +1,3 @@
-'''
-Author: HDJ @https://github.com/Goodnameisfordoggy
-LastEditTime: 2025-07-10 22:42:43
-FilePath: \pythond:\LocalUsers\Goodnameisfordoggy-Gitee\JD-Automated-Tools\JD-AutomaticEvaluate\pc\src\logInWithCookies.py
-Description: @VSCode
-
-				|	早岁已知世事艰，仍许飞鸿荡云间；
-				|	曾恋嘉肴香绕案，敲键弛张荡波澜。
-				|
-				|	功败未成身无畏，坚持未果心不悔；
-				|	皮囊终作一抔土，独留屎山贯寰宇。
-
-Copyright (c) 2024-2025 by HDJ, All Rights Reserved.
-'''
 import os
 import sys
 import time
@@ -20,9 +6,9 @@ from typing import Optional
 
 from playwright.sync_api import sync_playwright, BrowserContext, Page, TimeoutError as PlaywrightTimeoutError
 
-from product.src.utils import COOKIES_DIR
-from product.src.data import NetworkError
-from product.src.logger import get_logger
+from services.jdhelper import COOKIES_DIR
+from services.jdhelper.error import NetworkError
+from services.jdhelper.logger import get_logger
 from common.utils import sync_retry
 
 LOG = get_logger()

@@ -7,7 +7,7 @@ def logInWithCookies(target_url: str = "https://www.jd.com/"):
     """
     使用保存的 cookies 模拟登录
     """
-    cookie_file = '../product/cookies/cookies.json'
+    cookie_file = '../cookies/cookies.json'
     p = sync_playwright().start()
     browser = p.chromium.launch(
         headless=False,
