@@ -22,16 +22,6 @@ LOG = get_logger()
 
 
 class AutomaticEvaluate(object):
-
-	MIN_EXISTING_PRODUCT_DESCRIPTIONS: int = 15  # 商品已有文案的最少数量 | 真实评论文案多余这个数脚本才会正常获取已有文案。
-	MIN_EXISTING_PRODUCT_IMAGES: int = 15        # 商品已有图片的最少数量 | 真实评论图片多余这个数脚本才会正常获取已有图片。
-	MIN_DESCRIPTION_CHAR_COUNT: int = 60         # 评论文案的最少字数 | 在已有评论中随机筛选文案的限制条件，JD:优质评价要求60字以上。
-	CLOSE_SELECT_CURRENT_PRODUCT: bool = False      # 关闭仅查看当前商品 | 启用此设置，在获取已有评论文案与图片时将查看商品所有商品评论信息，关闭可能会导致评论准确性降低
-	CLOSE_AUTO_COMMIT: bool = False                 # 关闭自动提交 | 启用此设置，在自动填充完评价页面后将不会自动点击提交按钮
-	DEAL_TURING_VERIFICATION: int = 0           # 图灵测试的处理 | 0触发测试直接退出，1阻塞等待手动处理
-	GUARANTEE_COMMIT: bool = False                  # 保底评价 | 在获取不到已有信息时使用文本默认评价并提交
-	CURRENT_AI_GROUP: str = ""                   # AI模型的组别名称 | 使用AI模型生成评论文案
-	CURRENT_AI_MODEL: str = ""                   # AI模型的名称 | 使用AI模型生成评论文案
 	LOG_LEVEL: str = "INFO"                          # 日志记录等级
 
 	def __init__(self) -> None:
@@ -63,16 +53,9 @@ class AutomaticEvaluate(object):
 		"""主循环"""
 		try:
 			init_logger(self.LOG_LEVEL)
-			if self.CURRENT_AI_MODEL or self.CURRENT_AI_GROUP:
-				from product.src.api_service import init_env
-				init_env()
 			self.__page, _ = logInWithCookies()
+			self.get_sku_info_list()
 
-
-			self.__step_01()
-			# for task in self.__generate_task():
-			# 	LOG.debug(f"任务已生成：{task}")
-			# 	self.__automatic_evaluate(task)
 			return True
 		except Exception as err:
 			self.__err_occurred = True
@@ -91,34 +74,50 @@ class AutomaticEvaluate(object):
 			if getattr(sys, 'frozen', False):
 				input("按任意位置继续...")
 
-	def __step_01(self):
+	def get_sku_info(self, sku_code):
 		'''
 		获取商品对应的价格
 		:return:
+			{
+				'sku_code': sku_code,
+				'sku_name': sku_name,
+				'price': price_value
+			}
 		'''
-		item_code = '100172027914'
-		while True:
-			url_1 = f'https://item.jd.com/{item_code}.html'
-			# try:
-			# 	# 等待结束标志
-			# 	if self.__page.wait_for_selector('.tip-icon', timeout=5000):
-			# 		LOG.info('识别到结束标志，所有待评价页面url获取结束！')  # 检查元素tip-icon，这个元素标识没有待评价的订单了
-			# 		break
-			# except PlaywrightTimeoutError:
-			# 	LOG.info('结束标志未出现！')
-			try:
-				self.__load_page(url_1, timeout=20000)
-			except PlaywrightTimeoutError:
-				raise NetworkError(message=f"页面加载超时：{url_1}")
+		url_1 = f'https://item.jd.com/{sku_code}.html'
+		sku_name = ''
+		price_value = 0.00
+		try:
+			self.__load_page(url_1, timeout=20000)
+		except PlaywrightTimeoutError:
+			raise NetworkError(message=f"页面加载超时：{url_1}")
+		try:
 			sku_name_element = self.__page.locator('.sku-name-title')
 			sku_name = sku_name_element.inner_text()
-			LOG.info(f"商品名称：{sku_name}")
+		except Exception as e:
+			LOG.error(f"获取商品名称失败: {e}")
+
+		try:
 			price_element = self.__page.locator('.summary-price.J-summary-price .p-price .price')
 			price_text = price_element.inner_text()
-			# 分割出价格数值部分，转换为 float 后再取整数部分（或根据需求处理）
-			price_value = int(float(price_text.split('¥')[-1].strip()))
-			LOG.info(f"商品价格：{price_value}")
-			time.sleep(100)
+			price_value = float(price_text.split('¥')[-1].strip())
+		except Exception as e:
+			LOG.error(f"获取商品价格失败: {e}")
+		return {
+			'sku_code': sku_code,
+			'sku_name': sku_name,
+			'price': price_value
+		}
+
+	def get_sku_info_list(self):
+		sku_code_list = []
+		sku_info_list = []
+		for sku_code in sku_code_list:
+			sku_info = self.get_sku_info(sku_code)
+			if sku_info:
+				sku_info_list.append(sku_info)
+		LOG.debug(sku_info_list)
+		return sku_info_list
 
 	def __requires_TuringVerification(self) -> bool:
 		"""判断是否进入图灵验证界面"""
