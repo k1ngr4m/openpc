@@ -1,9 +1,10 @@
 from typing import Any
 from fastapi import HTTPException, Request
-
+import services.logger.logger as logger
+import jdUtil as jdUtil
 
 class Api:
-    def __init__(self, jdUtil: Any):
+    def __init__(self, jdUtil: jdUtil):
         self.jd = jdUtil
 
     async def DevHand(self, request: Request):
@@ -15,8 +16,10 @@ class Api:
 
     async def QuerySkuInfo(self, request: Request):
         data = await request.json()
-        print(data)
         sku_code = data.get("skuCode", "").strip()
         sku_type = data.get("skuType", "").strip()
         sku_info = await self.jd.query_sku_info(sku_code)
+        if sku_info:
+            sku_info['type'] = sku_type
+            self.jd.mysql.insert_sku_info(sku_info)
         return sku_info

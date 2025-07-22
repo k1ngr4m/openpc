@@ -33,13 +33,13 @@ class MysqlUtil:
             print(f"Error: {e}")
             return []
 
-    def sql_execute(self, sql):
+    def sql_execute(self, sql, params):
         try:
             if self.db and self.cursor:
-                self.cursor.execute(sql)
+                self.cursor.execute(sql,params)
                 affected_rows = self.cursor.rowcount
                 self.db.commit()
-                # logger.info(f"受影响的行数: {affected_rows}")
+                logger.info(f"受影响的行数: {affected_rows}")
                 return affected_rows
         except Exception as e:
             self.db.rollback()
@@ -79,6 +79,17 @@ class MysqlUtil:
         except Exception as e:
             self.db.rollback()
             logger.error("删除失败:", e)
+
+    def insert_sku_info(self, sku_info):
+        res_sku_code = sku_info.get('sku_code', '')
+        res_sku_name = sku_info.get('sku_name', '')
+        res_price = sku_info.get('price', 0.00)
+        res_url = sku_info.get('url', '')
+        res_brand = sku_info.get('brand', '')
+        res_sku_type = sku_info.get('type', '')
+        sql = "INSERT INTO jd_products_info (sku_code, sku_name, price, url, brand, type) VALUES (%s, %s, %s, %s, %s, %s)"
+        params = (res_sku_code, res_sku_name, res_price, res_url, res_brand, res_sku_type)
+        self.sql_execute(sql, params)
 
     @staticmethod
     def close(self):

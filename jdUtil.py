@@ -273,7 +273,9 @@ class jdUtil:
         return {
             'sku_code': sku_code,
             'sku_name': sku_name,
-            'price': price_value
+            'price': price_value,
+            'url': url_1,
+            'brand': ''
         }
 
     @sync_retry(max_retries=3, retry_delay=2, exceptions=(PlaywrightTimeoutError,))
