@@ -17,10 +17,10 @@ from routes import register_routes
 from services.db.remote.mysqlutil import MysqlUtil
 import services.logger.logger as logger
 import uvicorn
-from playwright.sync_api import TimeoutError as PlaywrightTimeoutError, Locator, ElementHandle, Page
+from playwright.async_api import async_playwright, TimeoutError as PlaywrightTimeoutError, Locator, ElementHandle, Page
 
 from services.jdhelper.error import NetworkError
-from services.jdhelper.login_with_cookie import logInWithCookies
+from services.jdhelper.login_with_cookie import logInWithCookies as async_logInWithCookies
 
 
 class CancellationContext:
@@ -54,7 +54,8 @@ class jdUtil:
                  cancel: Optional[Callable[[], None]] = None,
                  api: Optional[Api] = None,
                  lock: Optional[threading.Lock] = None,
-                 mysql: Optional[Any] = None,):
+                 mysql: Optional[Any] = None):
+        self._event_loop = None  # 存储事件循环引用
         self.ctx = ctx
         self.opts = opts if opts is not None else default_opts
         self.http_srv = http_srv
@@ -68,8 +69,8 @@ class jdUtil:
         self.__page, browser = None, None
         self.__err_occurred = False
 
-    def init_page(self):
-        self.__page, _ = logInWithCookies()
+    async def init_page(self):
+        self.__page, _ = await async_logInWithCookies()
 
     def init_api(self):
         # 确保 api 已初始化
@@ -123,18 +124,27 @@ class jdUtil:
         except Exception as e:
             logger.error(f"初始化 WebView 时出错: {e}")
 
-    def run(self):
+    async def run_async(self):
         # 初始化 Web 接口服务
         self.init_api()
-
+        
         # 初始化 WebView（界面服务）routes.py
         threading.Thread(target=self.init_web_view, daemon=True).start()
-        threading.Thread(target=self.init_page, daemon=True).start()
+        
+        # 保存事件循环引用
+        self._event_loop = asyncio.get_running_loop()
+        
+        # 初始化页面
+        await self.init_page()
         logger.info(
             f"{global_vars.Conf.app_name} 已启动 -- {global_vars.Conf.website_title}"
         )
-
-        return asyncio.run(self.notify_quit())
+        
+        # 运行主循环
+        await self.notify_quit()
+        
+    def run(self):
+        asyncio.run(self.run_async())
 
 
     async def notify_quit(self):
@@ -220,7 +230,7 @@ class jdUtil:
         logger.info("服务已停止")
 
 
-    def query_sku_info(self, sku_code):
+    async def query_sku_info(self, sku_code):
         '''
         获取商品对应的价格
         :return:
@@ -230,29 +240,36 @@ class jdUtil:
                 'price': price_value
             }
         '''
+        if not self.__page or self.__page.is_closed():
+            await self.init_page()
+            
         url_1 = f'https://item.jd.com/{sku_code}.html'
         sku_name = ''
         price_value = 0.00
+        
         try:
-            self.__load_page(url_1, timeout=20000)
+            await self.__load_page(url_1, timeout=20000)
         except PlaywrightTimeoutError:
             raise NetworkError(message=f"页面加载超时：{url_1}")
+            
         try:
-            self.__page.wait_for_selector('.sku-name-title', timeout=5000)
+            await self.__page.wait_for_selector('.sku-name-title', timeout=5000)
             sku_name_element = self.__page.locator('.sku-name-title')
-            sku_name = sku_name_element.inner_text()
+            sku_name = await sku_name_element.inner_text()
             logger.info(f'商品名称: {sku_name}')
         except Exception as e:
             logger.error(f"获取商品名称失败: {e}")
 
         try:
-            self.__page.wait_for_selector('.summary-price.J-summary-price .p-price .price')
+            await self.__page.wait_for_selector('.summary-price.J-summary-price .p-price .price')
             price_element = self.__page.locator('.summary-price.J-summary-price .p-price .price')
-            price_text = price_element.inner_text()
+            price_text = await price_element.inner_text()
             price_value = float(price_text.split('¥')[-1].strip())
             logger.info(f'商品价格: {price_value}')
         except Exception as e:
             logger.error(f"获取商品价格失败: {e}")
+        finally:
+            await self.__page.close()
         return {
             'sku_code': sku_code,
             'sku_name': sku_name,
@@ -260,8 +277,15 @@ class jdUtil:
         }
 
     @sync_retry(max_retries=3, retry_delay=2, exceptions=(PlaywrightTimeoutError,))
-    def __load_page(self, url: str, timeout: float):
-        return self.__page.goto(url, timeout=timeout)
+    async def __load_page(self, url: str, timeout: float):
+        if not self.__page or self.__page.is_closed():
+            await self.init_page()
+        # 确保在正确的事件循环中执行
+        if self._event_loop and self._event_loop != asyncio.get_running_loop():
+            # 在正确循环中重新初始化页面
+            self.__page = None
+            await self.init_page()
+        return await self.__page.goto(url, timeout=timeout)
 
 def new_jdUtil(*apply_options: ApplyOption) -> jdUtil:
     ctx = CancellationContext()
@@ -273,7 +297,7 @@ def new_jdUtil(*apply_options: ApplyOption) -> jdUtil:
         cancel=cancel,
         lock=threading.Lock(),
         opts=default_opts,
-        mysql = mysql
+        mysql=mysql
     )
     # 设置开发/生产模式
     if global_vars.is_dev_mode():

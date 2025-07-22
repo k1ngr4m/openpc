@@ -18,5 +18,5 @@ class Api:
         print(data)
         sku_code = data.get("skuCode", "").strip()
         sku_type = data.get("skuType", "").strip()
-        sku_info = self.jd.query_sku_info(sku_code)
+        sku_info = await self.jd.query_sku_info(sku_code)
         return sku_info
