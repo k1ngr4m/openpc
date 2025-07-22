@@ -47,11 +47,12 @@ class SkuType(str, Enum):
     CPU = "cpu"
     MOTHERBOARD = "主板"
     MEMORY = "内存"
-    STORAGE = "存储"
+    SSD = "固态硬盘"
     POWER_SUPPLY = "电源"
     CASE = "机箱"
     COOLER = "散热器"
-    MONITOR = "显示器"
+    FAN = "风扇"
+    HDD = "机械硬盘"
     
     @classmethod
     def get_type_code(cls, sku_type_str: str) -> int:

@@ -35,7 +35,7 @@ async def logInWithCookies(target_url: str = "https://www.jd.com/", retry: int =
         playwright = await async_playwright().start()
         browser = await playwright.chromium.launch(
                 headless=False,
-                args=["--disable-blink-features", "--disable-blink-features=AutomationControlled"]
+                args=["--disable-blink-features", "--disable-blink-features=AutomationControlled", "--disable-bot-controls", "--disable-infobars", "--window-size=1920,1080", "--start-maximized"]
             )
 
         context = await browser.new_context(

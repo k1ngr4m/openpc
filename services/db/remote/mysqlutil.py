@@ -96,7 +96,7 @@ class MysqlUtil:
                "(sku_code, sku_name, price, url, brand, type, is_taken_down, create_time, update_time) "
                "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s) "
                "ON DUPLICATE KEY UPDATE "
-               "sku_name=VALUES(sku_name), price=VALUES(price), update_time=VALUES(update_time), is_taken_down=VALUES(is_taken_down)")
+               "price=VALUES(price), update_time=VALUES(update_time), is_taken_down=VALUES(is_taken_down)")
         params = (res_sku_code, res_sku_name, res_price, res_url, res_brand, res_sku_type, is_taken_down, create_time, update_time)
         self.sql_execute(sql, params)
 
