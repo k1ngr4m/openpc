@@ -33,16 +33,7 @@ async def logInWithCookies(target_url: str = "https://www.jd.com/", retry: int =
     # 初始化 playwright
     if retry == 0:
         playwright = await async_playwright().start()
-        # 初始化浏览器对象
-        if getattr(sys, 'frozen', False):  # 打包模式
-            temp_dir = os.path.join(sys._MEIPASS, "chromium")
-            browser = await playwright.chromium.launch(
-                headless=False,
-                args=["--disable-blink-features", "--disable-blink-features=AutomationControlled"],
-                executable_path=os.path.join(temp_dir, "chrome.exe")
-            )
-        else:
-            browser = await playwright.chromium.launch(
+        browser = await playwright.chromium.launch(
                 headless=False,
                 args=["--disable-blink-features", "--disable-blink-features=AutomationControlled"]
             )
@@ -53,7 +44,6 @@ async def logInWithCookies(target_url: str = "https://www.jd.com/", retry: int =
 
     # 没有 Cookies 先登录获取
     if not os.path.exists(COOKIES_SAVE_PATH):
-        print(COOKIES_SAVE_PATH)
         LOG.info("未找到 Cookies 文件，将跳转手动登录！")
         page = await context.new_page()  # 这里的 context 在 retry=0时用的local变量，其余情况均使用递归传递的参数
         try:

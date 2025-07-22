@@ -137,6 +137,7 @@ class jdUtil:
         
         # 初始化页面
         await self.init_page()
+        await self.__page.close()
         logger.info(
             f"{global_vars.Conf.app_name} 已启动 -- {global_vars.Conf.website_title}"
         )
@@ -241,14 +242,14 @@ class jdUtil:
                 'price': price_value
             }
         '''
-        if not self.__page or self.__page.is_closed():
-            await self.init_page()
+        # if not self.__page or self.__page.is_closed():
+        #     await self.init_page()
             
         url_1 = f'https://item.jd.com/{sku_code}.html'
         sku_name = ''
         price_value = 0.00
         brand_name = ''
-
+        is_taken_down = 0
         try:
             await self.__load_page(url_1, timeout=20000)
         except PlaywrightTimeoutError:
@@ -263,15 +264,17 @@ class jdUtil:
             logger.error(f"获取商品名称失败: {e}")
 
         try:
-            await self.__page.wait_for_selector('.summary-price.J-summary-price .p-price .price')
+            await self.__page.wait_for_selector('.summary-price.J-summary-price .p-price .price', timeout=5000)
             price_element = self.__page.locator('.summary-price.J-summary-price .p-price .price')
             price_text = await price_element.inner_text()
             price_value = float(price_text.split('¥')[-1].strip())
             logger.info(f'商品价格: {price_value}')
         except Exception as e:
-            logger.error(f"获取商品价格失败: {e}")
+            logger.error(f"获取商品价格失败: {e}，可能已经下架了")
+            is_taken_down = 1
         finally:
             await self.__page.close()
+
         if sku_name:
             brand_name = self.extract_brand(sku_name)
         return {
@@ -279,13 +282,14 @@ class jdUtil:
             'sku_name': sku_name,
             'price': price_value,
             'url': url_1,
-            'brand': brand_name
+            'brand': brand_name,
+            'is_taken_down': is_taken_down
         }
 
     @sync_retry(max_retries=3, retry_delay=2, exceptions=(PlaywrightTimeoutError,))
     async def __load_page(self, url: str, timeout: float):
-        if not self.__page or self.__page.is_closed():
-            await self.init_page()
+        # if not self.__page or self.__page.is_closed():
+        #     await self.init_page()
         # 确保在正确的事件循环中执行
         if self._event_loop and self._event_loop != asyncio.get_running_loop():
             # 在正确循环中重新初始化页面
