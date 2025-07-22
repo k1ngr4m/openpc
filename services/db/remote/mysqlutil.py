@@ -1,3 +1,5 @@
+import time
+
 import services.logger.logger as logger
 from services.db.remote.config import DB_CONFIG
 import pymysql
@@ -87,8 +89,10 @@ class MysqlUtil:
         res_url = sku_info.get('url', '')
         res_brand = sku_info.get('brand', '')
         res_sku_type = sku_info.get('type', '')
-        sql = "INSERT INTO jd_products_info (sku_code, sku_name, price, url, brand, type) VALUES (%s, %s, %s, %s, %s, %s)"
-        params = (res_sku_code, res_sku_name, res_price, res_url, res_brand, res_sku_type)
+        create_time = int(time.time())
+        update_time = create_time
+        sql = "INSERT INTO jd_products_info (sku_code, sku_name, price, url, brand, type, create_time, update_time) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)"
+        params = (res_sku_code, res_sku_name, res_price, res_url, res_brand, res_sku_type, create_time, update_time)
         self.sql_execute(sql, params)
 
     @staticmethod
