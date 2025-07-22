@@ -46,11 +46,11 @@ class SkuType(str, Enum):
     GPU = "显卡"
     CPU = "cpu"
     MOTHERBOARD = "主板"
+    COOLER = "散热器"
     MEMORY = "内存"
     SSD = "固态硬盘"
     POWER_SUPPLY = "电源"
     CASE = "机箱"
-    COOLER = "散热器"
     FAN = "风扇"
     HDD = "机械硬盘"
     
