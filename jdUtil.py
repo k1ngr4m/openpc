@@ -1,4 +1,5 @@
 import asyncio
+import re
 import signal
 import threading
 import webbrowser
@@ -246,7 +247,8 @@ class jdUtil:
         url_1 = f'https://item.jd.com/{sku_code}.html'
         sku_name = ''
         price_value = 0.00
-        
+        brand_name = ''
+
         try:
             await self.__load_page(url_1, timeout=20000)
         except PlaywrightTimeoutError:
@@ -270,12 +272,14 @@ class jdUtil:
             logger.error(f"获取商品价格失败: {e}")
         finally:
             await self.__page.close()
+        if sku_name:
+            brand_name = self.extract_brand(sku_name)
         return {
             'sku_code': sku_code,
             'sku_name': sku_name,
             'price': price_value,
             'url': url_1,
-            'brand': ''
+            'brand': brand_name
         }
 
     @sync_retry(max_retries=3, retry_delay=2, exceptions=(PlaywrightTimeoutError,))
@@ -288,6 +292,34 @@ class jdUtil:
             self.__page = None
             await self.init_page()
         return await self.__page.goto(url, timeout=timeout)
+
+    def extract_brand(self, sku_name):
+        """
+        从商品名称中提取品牌信息
+        规则：优先取第一个括号前的内容，若无括号则取第一个空格前的内容
+        """
+        print(sku_name)
+        if not sku_name:
+            return ""
+
+        # 模式1：匹配"品牌（英文）"结构（支持中英文括号）
+        pattern1 = r'^([^\(\（]+?)\s*[\(\（]'
+        # 模式2：匹配首个空格前的连续非空字符
+        pattern2 = r'^(\S+?)\s'
+
+        # 先尝试匹配括号模式
+        match = re.search(pattern1, sku_name)
+        if match:
+            return match.group(1).strip()
+
+        # 再尝试匹配空格模式
+        match = re.search(pattern2, sku_name)
+        if match:
+            return match.group(1).strip()
+
+        # 两种模式都不匹配时取前5个字符（防止过长无效字符）
+        return sku_name[:5].strip()
+
 
 def new_jdUtil(*apply_options: ApplyOption) -> jdUtil:
     ctx = CancellationContext()
