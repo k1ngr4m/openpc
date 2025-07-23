@@ -28,5 +28,9 @@ def register_routes(app: FastAPI, api: Api):
     async def query_sku_info(request: Request):
         return await api.QuerySkuInfo(request)
 
+    @v1.post("/getProductList")
+    async def get_product_list(request: Request):
+        return await api.GetProductList(request)
+
     # 最后把 v1 注册到主应用
     app.include_router(v1)

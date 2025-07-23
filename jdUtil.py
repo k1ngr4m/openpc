@@ -83,6 +83,21 @@ class jdUtil:
         debug = bool(self.opts.debug)
         app = FastAPI(debug=debug)
 
+        # 添加CORS中间件
+        from fastapi.middleware.cors import CORSMiddleware
+
+        origins = [
+            "http://localhost:5173",  # 前端开发服务器地址
+            "http://127.0.0.1:5173",  # 备选前端地址
+        ]
+
+        app.add_middleware(
+            CORSMiddleware,
+            allow_origins=origins,
+            allow_credentials=True,
+            allow_methods=["*"],  # 允许所有HTTP方法
+            allow_headers=["*"],  # 允许所有请求头
+        )
 
         @app.middleware("http")
         async def recovery_and_log(request: Request, call_next):

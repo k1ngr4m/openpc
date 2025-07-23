@@ -42,3 +42,14 @@ class Api:
             return sku_info.to_dict()
         
         return None
+
+    async def GetProductList(self, request: Request):
+        data = await request.json()
+        sku_type = data.get("type", "").strip()
+
+        sku_list = self.jd.mysql.query_sku_info_by_type(sku_type)
+
+        return [{
+            "sku_name": sku['sku_name'],
+            "price": sku['price']
+        } for sku in sku_list]

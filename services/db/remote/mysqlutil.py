@@ -100,6 +100,11 @@ class MysqlUtil:
         params = (res_sku_code, res_sku_name, res_price, res_url, res_brand, res_sku_type, is_taken_down, create_time, update_time)
         self.sql_execute(sql, params)
 
+    def query_sku_info_by_type(self, type):
+        sql = "SELECT * FROM jd_products_info WHERE type = %s and isdel = 0 order by price asc"
+        params = (type,)
+        return self.get_fetchall(sql, params)
+
     @staticmethod
     def close(self):
         if self.cursor is not None:
