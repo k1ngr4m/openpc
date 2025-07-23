@@ -36,28 +36,15 @@ class SkuType(str, Enum):
     FAN = "风扇"
     HDD = "机械硬盘"
 
-    # 在类初始化后创建映射
-    _value_to_code = None
-    _code_to_value = None
-
-    @classmethod
-    def _init_mappings(cls):
-        """初始化映射关系（延迟加载）"""
-        if cls._value_to_code is None:
-            members = list(cls)
-            cls._value_to_code = {member.value: i + 1 for i, member in enumerate(members)}
-            cls._code_to_value = {i + 1: member.value for i, member in enumerate(members)}
-
     @classmethod
     def get_type_code(cls, sku_type_str: str) -> int:
-        cls._init_mappings()  # 确保映射已初始化
-        if code := cls._value_to_code.get(sku_type_str):
-            return code
+        for i, member in enumerate(cls):
+            if member.value == sku_type_str:
+                return i + 1
         raise ValueError(f"Invalid sku type: {sku_type_str}")
 
     @classmethod
     def get_type_str(cls, type_code: int) -> str:
-        cls._init_mappings()  # 确保映射已初始化
-        if value := cls._code_to_value.get(type_code):
-            return value
+        if 1 <= type_code <= len(cls):
+            return list(cls)[type_code - 1].value
         raise ValueError(f"Invalid type code: {type_code}")
