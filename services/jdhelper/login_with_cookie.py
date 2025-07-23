@@ -8,10 +8,9 @@ from playwright.async_api import async_playwright, BrowserContext, Page, Timeout
 
 from services.jdhelper import COOKIES_DIR
 from services.jdhelper.error import NetworkError
-from services.jdhelper.logger import get_logger
+import services.logger.logger as logger
 from common.utils import sync_retry
 
-LOG = get_logger()
 LOGIN_URL = 'https://passport.jd.com/new/login.aspx'  # 京东登录页面
 COOKIES_SAVE_PATH = os.path.join(COOKIES_DIR, "cookies.json")  # 保存 cookies 的路径
 
@@ -44,14 +43,14 @@ async def logInWithCookies(target_url: str = "https://www.jd.com/", retry: int =
 
     # 没有 Cookies 先登录获取
     if not os.path.exists(COOKIES_SAVE_PATH):
-        LOG.info("未找到 Cookies 文件，将跳转手动登录！")
+        logger.info("未找到 Cookies 文件，将跳转手动登录！")
         page = await context.new_page()  # 这里的 context 在 retry=0时用的local变量，其余情况均使用递归传递的参数
         try:
             response = await __load_page(page, LOGIN_URL, timeout=10000)  # 打开登录界面
             if response.status != 200:
-                LOG.error(f"请求错误，状态码：{response.status}")
+                logger.error(f"请求错误，状态码：{response.status}")
             else:
-                LOG.info("登录页面已跳转，建议使用手机验证码登录以获得较长有效期的 Cookies")
+                logger.info("登录页面已跳转，建议使用手机验证码登录以获得较长有效期的 Cookies")
         except PlaywrightTimeoutError:
             raise NetworkError(message=f"页面加载超时：{LOGIN_URL}")
 
@@ -60,15 +59,15 @@ async def logInWithCookies(target_url: str = "https://www.jd.com/", retry: int =
             try:
                 # 检查页面是否已经跳转到京东主页
                 await page.wait_for_url(target_url, timeout=3000)
-                LOG.success("手动登录成功！")
+                logger.info("手动登录成功！")
                 break
             except PlaywrightTimeoutError:
-                LOG.info("等待用户完成登录...")
+                logger.info("等待用户完成登录...")
         # 获取 Cookies 并保存到文件
         cookies = await page.context.cookies()
         with open(COOKIES_SAVE_PATH, 'w', encoding='utf-8') as f:
             json.dump(cookies, f, ensure_ascii=False, indent=4)
-            LOG.info(f'Cookies 已保存到 {os.getcwd()}/cookies.json')
+            logger.info(f'Cookies 已保存到 {os.getcwd()}/cookies.json')
         # 视觉效果优化，以便使用者查看日志信息并进行下一步操作
         await page.close()
         time.sleep(2)
@@ -87,17 +86,17 @@ async def logInWithCookies(target_url: str = "https://www.jd.com/", retry: int =
     # 检查是否成功登录
     try:
         await page.wait_for_selector('.nickname', timeout=10000)  # 查找一个登录后特有的元素
-        LOG.success('使用已保存的 Cookies 登录')
+        logger.info('使用已保存的 Cookies 登录')
         return page, context
     except PlaywrightTimeoutError:
         if os.path.isfile(COOKIES_SAVE_PATH):  # 每个账号的 cookies 对应一个文件，需要确保删除的是文件
             os.remove(COOKIES_SAVE_PATH)
-            LOG.warning('Cookies 已失效，请重新手动登录！')
+            logger.warning('Cookies 已失效，请重新手动登录！')
             # 视觉效果优化，以便使用者查看日志信息并进行下一步操作
             await page.close()
             time.sleep(2)
         if retry >= 3:  # 防止无限递归，但暂未想到发生异常的情况
-            LOG.critical("登录异常")
+            logger.critical("登录异常")
             sys.exit(1)
         else:
             return await logInWithCookies(retry=retry + 1, context=context)  # 尾递归，语义明了

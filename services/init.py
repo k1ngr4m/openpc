@@ -74,25 +74,24 @@ def init_log(app_name: str):
     global_vars.Logger.setLevel(log_level)
     global_vars.Logger.addHandler(handler)
 
-    # 如果是生产模式，添加文件处理器
-    if global_vars.is_prod_mode():
-        # 获取日志文件路径
-        log_dir = os.path.join(os.getcwd(), "logs")
-        os.makedirs(log_dir, exist_ok=True)
-        log_file = os.path.join(log_dir, f"{app_name}.log")
+    # 获取日志文件路径
+    log_dir = os.path.join(os.getcwd(), "logs")
+    os.makedirs(log_dir, exist_ok=True)
+    from datetime import datetime
+    log_file = os.path.join(log_dir, f"{app_name}_{datetime.now().strftime('%Y-%m-%d')}.log")
 
-        # 创建文件处理器
-        file_handler = logging.FileHandler(log_file)
-        file_handler.setFormatter(formatter)
-        global_vars.Logger.addHandler(file_handler)
+    # 创建文件处理器
+    file_handler = logging.FileHandler(log_file)
+    file_handler.setFormatter(formatter)
+    global_vars.Logger.addHandler(file_handler)
 
-        # 设置清理函数
-        def cleanup_log():
-            for handler in global_vars.Logger.handlers:
-                handler.close()
-                global_vars.Logger.removeHandler(handler)
+    # 设置清理函数
+    def cleanup_log():
+        for handler in global_vars.Logger.handlers:
+            handler.close()
+            global_vars.Logger.removeHandler(handler)
 
-        global_vars.set_cleanup(global_vars.LOG_WRITER_CLEANUP_KEY, cleanup_log)
+    global_vars.set_cleanup(global_vars.LOG_WRITER_CLEANUP_KEY, cleanup_log)
 
 def init_lib():
     """

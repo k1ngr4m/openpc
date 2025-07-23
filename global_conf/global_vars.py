@@ -21,6 +21,7 @@ DEFAULT_APP_CONF : appConf.AppConf = appConf.AppConf()
 Conf: appConf.AppConf = appConf.AppConf()
 Logger: Optional[Any] = None
 cleanups_mu : threading.Lock = threading.Lock()
+Cleanups: dict = {}
 
 def is_env_mode_dev() -> bool:
     """环境变量中是否为开发模式"""
