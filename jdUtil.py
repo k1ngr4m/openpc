@@ -2,6 +2,7 @@ import asyncio
 import re
 import signal
 import threading
+import time
 import webbrowser
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import suppress
@@ -137,6 +138,7 @@ class jdUtil:
         
         # 初始化页面
         await self.init_page()
+        time.sleep(3)
         await self.__page.close()
         logger.info(
             f"{global_vars.Conf.app_name} 已启动 -- {global_vars.Conf.website_title}"
@@ -273,6 +275,7 @@ class jdUtil:
             logger.error(f"获取商品价格失败: {e}，可能已经下架了")
             is_taken_down = 1
         finally:
+            time.sleep(2)
             await self.__page.close()
 
         if sku_name:
