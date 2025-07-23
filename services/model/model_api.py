@@ -2,25 +2,6 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Optional
 
-# class SkuInfo:
-#     def __init__(self, sku_code: str, sku_name: str = "", price: float = 0.0, url: str = "", brand: str = "", type: str = ""):
-#         self.sku_code = sku_code
-#         self.sku_name = sku_name
-#         self.price = price
-#         self.url = url
-#         self.brand = brand
-#         self.type = type
-#
-#     def to_dict(self) -> dict:
-#         return {
-#             'sku_code': self.sku_code,
-#             'sku_name': self.sku_name,
-#             'price': self.price,
-#             'url': self.url,
-#             'brand': self.brand,
-#             'type': self.type
-#         }
-
 @dataclass
 class SkuInfo:
     sku_code: str
@@ -42,6 +23,7 @@ class SkuInfo:
             'is_taken_down': self.is_taken_down
         }
 
+
 class SkuType(str, Enum):
     GPU = "显卡"
     CPU = "cpu"
@@ -53,16 +35,29 @@ class SkuType(str, Enum):
     CASE = "机箱"
     FAN = "风扇"
     HDD = "机械硬盘"
-    
+
+    # 在类初始化后创建映射
+    _value_to_code = None
+    _code_to_value = None
+
+    @classmethod
+    def _init_mappings(cls):
+        """初始化映射关系（延迟加载）"""
+        if cls._value_to_code is None:
+            members = list(cls)
+            cls._value_to_code = {member.value: i + 1 for i, member in enumerate(members)}
+            cls._code_to_value = {i + 1: member.value for i, member in enumerate(members)}
+
     @classmethod
     def get_type_code(cls, sku_type_str: str) -> int:
-        for i, member in enumerate(cls):
-            if member.value == sku_type_str:
-                return i + 1
+        cls._init_mappings()  # 确保映射已初始化
+        if code := cls._value_to_code.get(sku_type_str):
+            return code
         raise ValueError(f"Invalid sku type: {sku_type_str}")
-    
+
     @classmethod
     def get_type_str(cls, type_code: int) -> str:
-        if 1 <= type_code <= len(cls):
-            return list(cls)[type_code - 1].value
+        cls._init_mappings()  # 确保映射已初始化
+        if value := cls._code_to_value.get(type_code):
+            return value
         raise ValueError(f"Invalid type code: {type_code}")
